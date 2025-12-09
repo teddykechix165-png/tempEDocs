@@ -1,0 +1,58 @@
+{
+  "Serilog": {
+    "Using": [
+      "Serilog.Sinks.Console",
+      "Serilog.Sinks.EventLog",
+      "Serilog.Expressions"
+    ],
+    "Filter": [
+      {
+        "Name": "ByExcluding",
+        "Args": {
+          "expression": "RequestPath in ['/healthz/ready', '/healthz/live'] and StatusCode = 200"
+        }
+      }
+    ],
+    "MinimumLevel": {
+      "Default": "Information",
+      "Override": {
+        "Microsoft": "Warning",
+        "System": "Warning",
+        "HealthChecks": "Warning"
+      }
+    },
+    "WriteTo": [
+      {
+        "Name": "Console",
+        "Args": {
+          "outputTemplate": "[{Level:u3}] [{Timestamp:yyyy-MM-dd HH:mm:ss}] {Message:lj}{NewLine}{Exception}"
+        }
+      },
+      {
+        "Name": "EventLog",
+        "Args": {
+          "source": "PayNetRptApi",
+          "logName": "PayNetRptApi"
+        }
+      }
+    ],
+    "Enrich": [
+      "FromLogContext",
+      "WithMachineName",
+      "WithThreadId"
+    ]
+  },
+
+  "AllowedHosts": "*",
+
+  "Config": {
+    "Host": "drr server",
+    "Port": 22,
+    "Username": "sftpid",
+    "pvKeyPath": "test",
+    "RemoteFolder": [
+      "/EDW/Paynet/BOD-BSC/MEPS BALANCING/MYDEBIT",
+      "/EDW/Paynet/BOD-BSC/MEPS BALANCING/RPP"
+    ]
+  }
+}

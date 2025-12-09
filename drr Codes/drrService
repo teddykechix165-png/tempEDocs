@@ -1,0 +1,53 @@
+using Serilog;
+using Microsoft.Extensions.Configuration;
+using Renci.SshNet;
+
+namespace SftpFileChecking
+{
+    public class SftpService
+    {
+        public bool CheckForCsvOrTxtFiles(IConfiguration config)
+        {
+            string host = config["Config:Host"];
+            int port = int.Parse(config["Config:Port"]);
+            string username = config["Config:Username"];
+            string pvKeyPath = config["Config:pvKeyPath"];
+            string[] remoteFolder = config.GetSection("Config:RemoteFolder").Get<string[]>();
+
+            PrivateKeyFile pvKeyFile = new PrivateKeyFile(pvKeyPath);
+
+            bool anyFound = false;
+
+            using var client = new SftpClient(host, port, username, pvKeyFile);
+            client.Connect();
+
+            foreach (var folder in remoteFolder)
+            {
+                Log.Information($"Checking folder: {folder}");
+
+                var files = client.ListDirectory(folder);
+
+                var matchFiles = files.Where(f =>
+                    !f.IsDirectory &&
+                    (f.Name.EndsWith(".csv", StringComparison.OrdinalIgnoreCase) ||
+                     f.Name.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
+                ).ToList();
+
+                if (matchFiles.Any())
+                {
+                    anyFound = true;
+
+                    string fileList = string.Join(", ", matchFiles.Select(f => f.Name));
+                    Log.Information($"Files found in {folder}: {fileList}");
+                }
+                else
+                {
+                    Log.Information($"No CSV/TXT files found in {folder}");
+                }
+            }
+
+            client.Disconnect();
+            return anyFound;
+        }
+    }
+}
